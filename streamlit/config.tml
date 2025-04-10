@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "Skyblue"  # Green Theme
+backgroundColor = "#F5F5F5"
+secondaryBackgroundColor = "#E0E0E0"
+textColor = "Black"
+font = "sans serif"

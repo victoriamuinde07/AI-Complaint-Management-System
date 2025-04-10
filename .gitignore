@@ -1,0 +1,30 @@
+# Ignore virtual environment files
+venv/
+.venv/
+env/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore environment variables
+.env
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore large files
+*.bin
+*.safetensors
+*.pkl
+
+
+# Ignore temporary files
+.tmp.drivedownload/
+.tmp.driveupload/
+
+#ignore index.ipynb
+*.ipynb
