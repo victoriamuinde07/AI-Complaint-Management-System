@@ -5,7 +5,7 @@ colorFrom: red
 colorTo: indigo
 sdk: streamlit
 sdk_version: "1.43.2"
-app_file: app.py
+app_file: System/app.py
 pinned: false
 license: other
 short_description: NLP-powered system trained on financial institution data
