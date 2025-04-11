@@ -1,6 +1,7 @@
 # Copyright (c) 2025 RIAOR SYSTEM LTD
 # All rights reserved.
 import os
+from huggingface_hub import login
 import logging
 import random
 import asyncio
@@ -67,7 +68,7 @@ department_map = {
         "contact": "+25411898890"
     },
     "retail_banking": {
-        "name": "Customer Support", 
+        "name": "Customer Support",
         "contact": "+254793781276"
     },
     "credit_reporting": {
@@ -85,6 +86,8 @@ department_map = {
 }
 
 # Initialize Afriastalking SMS
+
+
 def initialize_sms_service():
     if africastalking and os.getenv('AT_API_KEY'):
         africastalking.initialize(
@@ -94,14 +97,16 @@ def initialize_sms_service():
         return africastalking.SMS
     return None
 
+
 sms_service = initialize_sms_service()
+
 
 def send_sms(recipient: str, message: str) -> bool:
     """Send SMS using Afriastalking"""
     if not sms_service:
         logger.warning("SMS service not available")
         return False
-    
+
     try:
         response = sms_service.send(message, [recipient])
         logger.info(f"SMS sent to {recipient}: {response}")
@@ -110,33 +115,41 @@ def send_sms(recipient: str, message: str) -> bool:
         logger.error(f"Failed to send SMS: {str(e)}")
         return False
 
+
 def fix_event_loop():
     """Fix for Windows event loop policy"""
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+
 fix_event_loop()
 
 # Application initialization
+
+
 def initialize_app():
     """Initialize application components"""
     try:
         init_db()
-        
+
         if 'last_update_time' not in st.session_state:
             st.session_state.last_update_time = None
 
         # Verify database connection
         with SessionLocal() as session:
             session.execute(text("SELECT 1"))
-        
+
         logger.info("Application initialized successfully")
     except Exception as e:
         logger.critical(f"Application initialization failed: {str(e)}")
         st.error(f"Failed to initialize application: {str(e)}")
         raise
 
+
+login(token=os.environ.get("HUGGINGFACE_TOKEN"))
 # Complaint classifier using DistilBERT
+
+
 class ComplaintClassifier:
     def __init__(self):
         self.model = None
@@ -180,6 +193,8 @@ class ComplaintClassifier:
             return "unknown"
 
 # UI Components
+
+
 def configure_ui():
     """Configure Streamlit UI styles"""
     st.markdown("""
@@ -208,6 +223,7 @@ def configure_ui():
     </style>
     """, unsafe_allow_html=True)
 
+
 def show_document_animation():
     """Falling financial documents animation"""
     docs = ["🧾", "📄", "📑", "📋"]
@@ -235,21 +251,23 @@ def show_document_animation():
     """, unsafe_allow_html=True)
 
 # Complaint Submission
+
+
 def complaint_submission_form(classifier: ComplaintClassifier) -> bool:
     """Render complaint submission form"""
     with st.form("complaint_form", clear_on_submit=True):
         st.subheader("📩 Submit a Complaint")
-        
+
         col1, col2 = st.columns(2)
         with col1:
             name = st.text_input("Full Name:", key="name_input")
         with col2:
             phone = st.text_input(
-                "Phone Number:", 
+                "Phone Number:",
                 placeholder="07XX XXX XXX",
                 help="Format: 07XXXXXXXX or +2547XXXXXXXX"
             )
-        
+
         account_number = st.text_input("Account Number:")
         complaint_text = st.text_area("Describe your issue:", height=200)
 
@@ -259,7 +277,8 @@ def complaint_submission_form(classifier: ComplaintClassifier) -> bool:
             with st.spinner("Analyzing complaint..."):
                 category = classifier.classify_text(complaint_text)
             if category != "unknown":
-                st.success(f"🔍 Detected Category: {department_map[category]['name']}")
+                st.success(
+                    f"🔍 Detected Category: {department_map[category]['name']}")
 
         if st.form_submit_button("Submit Complaint"):
             if validate_complaint(name, phone, account_number, complaint_text):
@@ -278,38 +297,39 @@ def complaint_submission_form(classifier: ComplaintClassifier) -> bool:
                     We've received your complaint and will process it shortly.  
                     You'll receive an SMS confirmation.
                     """)
-                    
+
                     # Auto-refresh the page after 3 seconds
                     st.session_state.should_rerun = True
                     time.sleep(3)
                     st.rerun()
                 return success
 
-
     return False
+
 
 def validate_complaint(name: str, phone: str, account: str, text: str) -> bool:
     """Validate complaint form inputs"""
     valid = True
-    
+
     if len(name.strip()) < 2:
         st.error("Please enter a valid name (minimum 2 characters)")
         valid = False
-        
+
     phone = phone.strip().replace(" ", "")
     if not (phone.startswith(('+254', '07')) and len(phone) in (10, 12)):
         st.error("Please enter a valid Kenyan phone number")
         valid = False
-        
+
     if not account.strip():
         st.error("Please enter your account number")
         valid = False
-        
+
     if len(text) < 30:
         st.error("Please provide more details about your issue")
         valid = False
-        
+
     return valid
+
 
 def format_phone(phone: str) -> str:
     """Format phone number to E.164 standard"""
@@ -320,8 +340,9 @@ def format_phone(phone: str) -> str:
         return f"+254{phone}"
     return phone
 
-def handle_complaint_submission(name: str, phone: str, account: str, 
-                              text: str, category: str) -> bool:
+
+def handle_complaint_submission(name: str, phone: str, account: str,
+                                text: str, category: str) -> bool:
     """Process complaint submission"""
     try:
         formatted_phone = format_phone(phone)
@@ -335,7 +356,7 @@ def handle_complaint_submission(name: str, phone: str, account: str,
             # Find or create customer
             customer = session.query(Customer).filter(
                 Customer.account_number == encrypt_data(account)).first()
-            
+
             if not customer:
                 customer = Customer(
                     name=name,
@@ -370,7 +391,8 @@ def handle_complaint_submission(name: str, phone: str, account: str,
             session.commit()
 
             # Send confirmation SMS
-            send_confirmation_sms("Dear customer,thank you for your trust,the issue will be handled in 24 hours time.")
+            send_confirmation_sms(
+                "Dear customer,thank you for your trust,the issue will be handled in 24 hours time.")
             send_department_alert(category, complaint.id)
 
             # UI feedback
@@ -389,6 +411,7 @@ def handle_complaint_submission(name: str, phone: str, account: str,
         st.error("Failed to process complaint")
         return False
 
+
 def send_confirmation_sms(phone: str, case_id: int, category: str) -> None:
     """Send confirmation SMS to complainant"""
     message = (
@@ -400,6 +423,7 @@ def send_confirmation_sms(phone: str, case_id: int, category: str) -> None:
         logger.info(f"Confirmation SMS sent to {phone}")
     else:
         logger.warning(f"Failed to send confirmation SMS to {phone}")
+
 
 def send_department_alert(category: str, case_id: int) -> None:
     """Send alert to department about new complaint"""
@@ -415,10 +439,12 @@ def send_department_alert(category: str, case_id: int) -> None:
             logger.warning(f"Failed to send alert to {dept['name']}")
 
 # Complaint Display
+
+
 def display_complaint_history():
     """Display complaint history with filters"""
     st.subheader("📜 Complaint History")
-    
+
     col1, col2 = st.columns(2)
     with col1:
         status_filter = st.selectbox(
@@ -427,17 +453,17 @@ def display_complaint_history():
         )
     with col2:
         search_term = st.text_input("Search complaints")
-    
+
     try:
         complaints = get_all_complaints(
             search_filter=search_term if search_term else None,
             status_filter=status_filter if status_filter != "All" else None
         )
-        
+
         if not complaints:
             st.info("No complaints found")
             return
-            
+
         for complaint in complaints:
             with st.expander(f"Complaint #{complaint['id']} - {complaint['status']}"):
                 cols = st.columns([1, 3])
@@ -447,14 +473,15 @@ def display_complaint_history():
                     **Status**: {complaint['status']}  
                     **Date**: {complaint['created_at'].split('T')[0] if 'T' in complaint['created_at'] else complaint['created_at']}
                     """)
-                    
+
                     new_status = st.selectbox(
                         "Update Status",
                         [s.value for s in ComplaintStatus],
-                        index=[s.value for s in ComplaintStatus].index(complaint['status']),
+                        index=[s.value for s in ComplaintStatus].index(
+                            complaint['status']),
                         key=f"status_update_{complaint['id']}"
                     )
-                    
+
                     if new_status != complaint['status']:
                         if st.button("Update", key=f"update_{complaint['id']}"):
                             if update_complaint_status(complaint['id'], new_status):
@@ -462,23 +489,25 @@ def display_complaint_history():
                                 st.rerun()
                             else:
                                 st.error("Update failed")
-                
+
                 with cols[1]:
-                    st.markdown(f"**Description**:\n\n{complaint['complaint_text']}")
+                    st.markdown(
+                        f"**Description**:\n\n{complaint['complaint_text']}")
                     if complaint.get('customer'):
                         st.markdown(f"""
                         **Account**: {complaint['customer']['account_display']}  
                         **Phone**: {complaint['customer']['phone_display']}
                         """)
-                    
+
     except Exception as e:
         st.error(f"Failed to load complaints: {str(e)}")
         logger.error(f"Complaint loading error: {str(e)}")
 
+
 def display_complaint_stats():
     """Display complaint statistics dashboard"""
     st.subheader("Live Complaint Dashboard")
-    
+
     try:
         stats = get_live_complaint_stats()
         if not stats:
@@ -493,7 +522,7 @@ def display_complaint_stats():
             "Pending": "#858796",
             "Deleted": "#e74a3b"
         }
-        
+
         for i, (status, count) in enumerate(stats.items()):
             with cols[i]:
                 st.markdown(
@@ -508,13 +537,13 @@ def display_complaint_stats():
                     </div>""",
                     unsafe_allow_html=True
                 )
-        
+
         # Pie chart
         chart_data = pd.DataFrame({
             "Status": list(stats.keys()),
             "Count": list(stats.values())
         })
-        
+
         fig = px.pie(
             chart_data,
             names="Status",
@@ -524,17 +553,21 @@ def display_complaint_stats():
             color_discrete_map=status_colors
         )
         fig.update_traces(textposition='inside', textinfo='percent+label')
-        fig.update_layout(showlegend=False, margin=dict(t=25, b=0, l=0, r=0), height=200)
+        fig.update_layout(showlegend=False, margin=dict(
+            t=25, b=0, l=0, r=0), height=200)
         st.plotly_chart(fig, use_container_width=True)
-        
+
     except Exception as e:
         st.error(f"Failed to load statistics: {str(e)}")
 
 # File watcher
+
+
 class DBFileHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if not event.src_path.endswith('.db-journal'):
             st.session_state.last_update_time = datetime.now().strftime("%H:%M:%S")
+
 
 def configure_file_watcher() -> Optional[Observer]:
     """Configure file watcher for database changes"""
@@ -543,7 +576,7 @@ def configure_file_watcher() -> Optional[Observer]:
         if not os.path.exists(current_dir):
             logger.warning(f"Watchdog path doesn't exist: {current_dir}")
             return None
-            
+
         event_handler = DBFileHandler()
         observer = Observer()
         observer.schedule(event_handler, path=current_dir, recursive=False)
@@ -554,6 +587,8 @@ def configure_file_watcher() -> Optional[Observer]:
         return None
 
 # Main application
+
+
 def main():
     """Main application entry point"""
     observer = None
@@ -571,17 +606,18 @@ def main():
             min_value=1, max_value=60, value=5
         )
         st_autorefresh(interval=refresh_rate * 60 * 1000)
-        
+
         # Sidebar info
         # Sidebar info
         with st.sidebar:
             try:
                 with SessionLocal() as session:
                     last_update = session.query(Complaint.updated_at)\
-                    .order_by(Complaint.updated_at.desc())\
-                    .first()
+                        .order_by(Complaint.updated_at.desc())\
+                        .first()
                     if last_update and last_update[0]:
-                        last_update_str = last_update[0].strftime("%b %d, %Y %I:%M %p")
+                        last_update_str = last_update[0].strftime(
+                            "%b %d, %Y %I:%M %p")
                         st.markdown(f"""<p style='font-size:16px;'><b>Last Update:</b>
                          {last_update_str}</p>
                          """, unsafe_allow_html=True)
@@ -590,25 +626,25 @@ def main():
                         st.metric("Last Complaint Update", last_update_str)
             except Exception as e:
                 logger.error(f"Database connection error: {str(e)}")
-            
+
         # Main content
         st.title("📢 Complaint Management System")
         st.caption("Efficiently manage and track customer complaints")
-        
+
         classifier = ComplaintClassifier()
-        
+
         col1, col2 = st.columns([2, 1], gap="large")
         with col1:
             if complaint_submission_form(classifier):
-                st.balloons()  
+                st.balloons()
                 st.session_state.last_update_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 st.rerun()
 
             display_complaint_history()
-            
+
         with col2:
             display_complaint_stats()
-            
+
     except Exception as e:
         logger.critical(f"Application error: {str(e)}", exc_info=True)
         st.error("A critical error occurred. Please contact support.")
@@ -621,14 +657,16 @@ def main():
             except Exception as e:
                 logger.warning(f"Error stopping observer: {str(e)}")
 
+
 if __name__ == "__main__":
     if sys.platform == "win32":
         torch.multiprocessing.freeze_support()
-   
+
     fix_event_loop()
     try:
         main()
     except Exception as e:
         logger.critical(f"Application crashed: {str(e)}", exc_info=True)
-        st.error("The application encountered a critical error. Please try again later.")
+        st.error(
+            "The application encountered a critical error. Please try again later.")
         st.stop()
