@@ -1,15 +1,3 @@
----
-title: AI-Powered Complaint Management System
-emoji: 📚
-colorFrom: red
-colorTo: indigo
-sdk: streamlit
-sdk_version: "1.43.2"
-app_file: System/app.py
-pinned: false
-license: other
-short_description: NLP-powered system trained on financial institution data
----
 
 # AI-Powered Complaint Management System
 
@@ -52,7 +40,7 @@ The **AI-Powered Complaint Management System** is an intelligent platform design
 ## Contributors
 
 - **Victoria Mwikali** - Lead Developer  
-- **RAIOT SYSTEM LTD**
+- **RAIOR SYSTEM LTD**
 
 ## License
 
